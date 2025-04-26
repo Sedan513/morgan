@@ -1,6 +1,6 @@
 async function fetch8KHtmlFromTicker(ticker) {
   const headers = {
-    "User-Agent": "YourAppName/1.0 (your.email@example.com)",
+    "User-Agent": "arosen64@jh.edu",
   };
 
   try {

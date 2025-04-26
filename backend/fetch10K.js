@@ -1,6 +1,6 @@
 async function fetch10KHtmlFromTicker(ticker) {
     const headers = {
-      "User-Agent": "Your Name your.email@example.com", // Replace with real info
+      "User-Agent": "arosen64@jh.edu", // Replace with real info
     };
   
     try {

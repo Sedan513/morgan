@@ -1,6 +1,6 @@
 async function fetch10QHtmlFromTicker(ticker) {
     const headers = {
-      "User-Agent": "YourAppName/1.0 (your.email@example.com)",
+      "User-Agent": "arosen64@jh.edu",
     };
   
     try {
