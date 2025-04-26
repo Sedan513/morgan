@@ -1,5 +1,6 @@
 const express = require('express');
 const AWS = require('aws-sdk');
+
 const axios = require('axios');
 require('dotenv').config();
 
@@ -7,6 +8,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
+
 
 // Configure AWS SDK
 AWS.config.update({
@@ -17,7 +19,6 @@ AWS.config.update({
 
 // Create Secrets Manager client
 const secretsManager = new AWS.SecretsManager();
-
 // Load Google API Key once
 async function loadGoogleApiKey() {
   const data = await secretsManager.getSecretValue({ SecretId: process.env.SECRET_ID }).promise();
@@ -69,16 +70,7 @@ app.post('/generate-content', async (req, res) => {
   if (!prompt) {
     return res.status(400).json({ error: "Missing prompt in request body" });
   }
-
-  try {
-    const generatedText = await generateGeminiContent(prompt);
-    res.json({ text: generatedText }); // 🔥 Clean output: { text: "..." }
-  } catch (error) {
-    console.error('Error generating content:', error.response?.data || error.message);
-    res.status(500).send('Error generating content from Gemini');
-  }
-});*/
-
+*/
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
