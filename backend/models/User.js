@@ -50,12 +50,7 @@ userSchema.methods.removeStock = function(symbol) {
   return this.save();
 };
 
-userSchema.methods.generateGeminiPromptData = function() {
-    const stockSummary = this.stocks.map(stock => 
-      `${stock.quantity} shares of ${stock.symbol} at an average price of $${stock.averagePrice.toFixed(2)}`
-    ).join(', ');
-  
-    return `
+userSchema.methods.generateGeminiPromptData = async function() { `
   Name: ${this.name}
   Age: ${this.age}
   Location: ${this.location}
@@ -65,6 +60,44 @@ userSchema.methods.generateGeminiPromptData = function() {
   ${stockSummary.length > 0 ? stockSummary : 'No stocks owned yet.'}
     `.trim();
   };
+  let stockSummary = '';
+
+  for (const stock of this.stocks) {
+    const { symbol, quantity, averagePrice } = stock;
+
+    let eightK = "N/A", tenK = "N/A", tenQ = "N/A";
+
+    try {
+      eightK = await fetch8KHtmlFromTicker(symbol);
+    } catch (err) {
+      console.warn(`8-K fetch failed for ${symbol}:`, err.message);
+    }
+
+    try {
+      tenK = await fetch10KHtmlFromTicker(symbol);
+    } catch (err) {
+      console.warn(`10-K fetch failed for ${symbol}:`, err.message);
+    }
+
+    try {
+      tenQ = await fetch10QHtmlFromTicker(symbol);
+    } catch (err) {
+      console.warn(`10-Q fetch failed for ${symbol}:`, err.message);
+    }
+
+      stockSummary += `
+  Symbol: ${symbol}
+  Shares: ${quantity}
+  Average Price: $${averagePrice.toFixed(2)}
+  8-K: ${eightK.substring(0, 1000)}${eightK.length > 1000 ? "..." : ""}
+  10-K: ${tenK.substring(0, 1000)}${tenK.length > 1000 ? "..." : ""}
+  10-Q: ${tenQ.substring(0, 1000)}${tenQ.length > 1000 ? "..." : ""}
+  
+  -------------------
+  `;
+      }
+  return
+  
 
 const User = mongoose.model('User', userSchema);
 
