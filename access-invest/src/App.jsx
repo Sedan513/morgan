@@ -6,9 +6,18 @@ import './App.css';
 import StockChart from './components/StockChart';
 import Rating from './components/Rating';
 import AuthPage from './Auth.jsx'; // Fixed import path
+import logo from './assets/newlogo2.png'; // Add this at the top
+import { useRef } from 'react';
 
 function Dashboard() {
   const [selectedStock, setSelectedStock] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newStock, setNewStock] = useState({
+    ticker: '',
+    name: '',
+    shares: '',
+    date: ''
+  });
   const [stocks, setStocks] = useState([
     {
       ticker: 'AAPL',
@@ -55,6 +64,8 @@ function Dashboard() {
   ]);
 
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -63,13 +74,83 @@ function Dashboard() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/auth';
+  };
+
+  const handleEditAccount = () => {
+    window.location.href = '/account';
+  };
+
+  const handleAddStockChange = (e) => {
+    setNewStock({ ...newStock, [e.target.name]: e.target.value });
+  };
+  
+  const handleAddStockSubmit = (e) => {
+    e.preventDefault();
+    // Add the new stock to the list (you can replace this with an API call)
+    setStocks([
+      {
+        ticker: newStock.ticker,
+        name: newStock.name,
+        lastUpdated: new Date(),
+        rating: 0,
+        chartData: [],
+        ratingExplanation: '',
+        shares: newStock.shares,
+        purchaseDate: newStock.date
+      },
+      ...stocks
+    ]);
+    setShowAddModal(false);
+    setNewStock({ ticker: '', name: '', shares: '', date: '' });
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>AccessInvest</h1>
+      <img src={logo} alt="AccessInvest Logo" className="banner-logo" />
+      <div className="account-menu-container">
+        <button
+          className="account-btn"
+          onClick={() => setShowDropdown((v) => !v)}
+          aria-label="Account"
+        >
+          {/* Minimalist user icon SVG */}
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="14" fill="#eee"/>
+            <circle cx="14" cy="11" r="5" fill="#bbb"/>
+            <ellipse cx="14" cy="20" rx="7" ry="4" fill="#bbb"/>
+          </svg>
+        </button>
+          {showDropdown && (
+            <div className="account-dropdown" ref={dropdownRef}>
+              <button className="account-dropdown-item" onClick={handleEditAccount}>Edit Account</button>
+              <button className="account-dropdown-item logout" onClick={handleLogout}>Log Out</button>
+            </div>
+          )}
+        </div>
       </header>
       <div className="main-content">
         <div className="stock-list">
+        <button
+            className="add-stock-btn"
+            onClick={() => setShowAddModal(true)}
+          >
+            <span style={{ fontSize: 22, marginRight: 8 }}>＋</span>
+            Add Stock
+        </button>
           {stocks.map((stock) => (
             <div 
               key={stock.ticker} 
@@ -107,6 +188,60 @@ function Dashboard() {
           )}
         </div>
       </div>
+      {showAddModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Add New Stock</h2>
+            <form onSubmit={handleAddStockSubmit} className="modal-form">
+              <label>
+                Ticker
+                <input
+                  type="text"
+                  name="ticker"
+                  value={newStock.ticker}
+                  onChange={handleAddStockChange}
+                  required
+                />
+              </label>
+              <label>
+                Company Name
+                <input
+                  type="text"
+                  name="name"
+                  value={newStock.name}
+                  onChange={handleAddStockChange}
+                  required
+                />
+              </label>
+              <label>
+                Shares
+                <input
+                  type="number"
+                  name="shares"
+                  value={newStock.shares}
+                  onChange={handleAddStockChange}
+                  required
+                  min="1"
+                />
+              </label>
+              <label>
+                Purchase Date
+                <input
+                  type="date"
+                  name="date"
+                  value={newStock.date}
+                  onChange={handleAddStockChange}
+                  required
+                />
+              </label>
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="submit" className="add-stock-btn" style={{margin:0}}>Add</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

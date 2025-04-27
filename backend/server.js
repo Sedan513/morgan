@@ -16,7 +16,7 @@ if (!uri) {
 }
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 5001;  // Explicitly set to 5001
 
 // Middleware
 app.use(cors({
@@ -50,6 +50,34 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+app.post('/api/add-stock', authenticateToken, async (req, res) => {
+  try {
+    const { ticker, name, shares, date } = req.body;
+    if (!ticker || !name || !shares || !date) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Find the user by ID from the JWT
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Add the new stock to the user's stocks array
+    user.stocks.push({
+      symbol: ticker,
+      quantity: shares,
+      averagePrice: 0, // You can add a field for price if you want
+      purchaseDate: date,
+      companyName: name
+    });
+
+    await user.save();
+    res.json({ message: 'Stock added successfully', stocks: user.stocks });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add stock' });
+  }
+});
+
 // Connect to MongoDB with better error handling
 const connectDB = async () => {
   try {
@@ -57,8 +85,6 @@ const connectDB = async () => {
     console.log('Connection string:', uri);
     
     const conn = await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000
     });
     
@@ -70,6 +96,7 @@ const connectDB = async () => {
   }
 };
 
+// Call the connectDB function
 connectDB();
 
 // Authentication routes
@@ -173,3 +200,34 @@ app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   console.log(`Server URL: http://localhost:${port}`);
 });
+
+const handleAddStockSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch('http://localhost:5001/api/add-stock', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ticker: newStock.ticker,
+        name: newStock.name,
+        shares: newStock.shares,
+        date: newStock.date
+      })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      // Optionally update local state with new stocks
+      setStocks(data.stocks);
+      setShowAddModal(false);
+      setNewStock({ ticker: '', name: '', shares: '', date: '' });
+    } else {
+      alert(data.error || 'Failed to add stock');
+    }
+  } catch (err) {
+    alert('Network error');
+  }
+};
