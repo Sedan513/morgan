@@ -2,3 +2,4 @@ backend/node_modules/
 backend/.env
 *.log
 node_modules
+access-invest/assets/
