@@ -16,7 +16,7 @@ if (!uri) {
 }
 
 const app = express();
-const port = 5001;  // Explicitly set port to 5001
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
@@ -70,7 +70,6 @@ const connectDB = async () => {
   }
 };
 
-// Call the connectDB function
 connectDB();
 
 // Authentication routes
@@ -89,7 +88,6 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-// Create Secrets Manager client
 const secretsManager = new AWS.SecretsManager();
 
 // Load Google API Key from AWS Secrets Manager
