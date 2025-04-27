@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+const { fetch8KHtmlFromTicker } = require('../sec-functions/fetch8K');   
+const { fetch10KHtmlFromTicker } = require('../sec-functions/fetch10K');
+const { fetch10QHtmlFromTicker } = require('../sec-functions/fetch10Q');
+const { getNews } = require('../sec-functions/getNews');
+
 // Each stock the user owns
 const stockSchema = new mongoose.Schema({
   symbol: { type: String, required: true },    // e.g., "AAPL"
@@ -75,6 +80,11 @@ userSchema.methods.generateGeminiPromptData = async function() {
     } catch (err) {
       console.warn(`10-Q fetch failed for ${symbol}:`, err.message);
     }
+    try {
+        news = await getNews(symbol);
+    } catch (err) {
+        console.warn(`News fetch failed for ${symbol}:`, err.message);
+    }
 
       stockSummary += `
   Symbol: ${symbol}
@@ -88,7 +98,7 @@ userSchema.methods.generateGeminiPromptData = async function() {
   `;
       } 
   return `
-  Goal: Below, I include a full profile for a user, including their stock portfolio. For each stock, there are the latest 8-K, 10-K, and 10-Q filings. For each stock, I want you to give a concise summary of the most important information in the filings that a user should know. After that stock info is included top 5 headlines about the current market, using this, give a sentiment analysis of the news, rank it from 1-10 integers on how positive the news is, and give a brief explanation of why you gave that score. 1 being very negative and 10 being very positive.
+  Goal: Below, I include a full profile for a user, including their stock portfolio. For each stock, there are the latest 8-K, 10-K, and 10-Q filings, ignore the news section right now. For each stock, I want you to give a concise summary of the most important information in the filings that a user should know. After the 8k, 10k, 10q info is top headlines about the current market, using this, give a sentiment analysis of the news, rank it from 1-10 integers on how positive the news is, and give a brief explanation of why you gave that score. 1 being very negative and 10 being very positive. Prioritize the information of the stocks that the user has the most value in.
   Name: ${this.name}
   Age: ${this.age}
   Location: ${this.location}
