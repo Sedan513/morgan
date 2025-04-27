@@ -17,13 +17,13 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
     
-    const endpoint = isLogin
-      ? 'http://localhost:5000/api/login'
-      : 'http://localhost:5000/api/register';
+    const apiUrl = isLogin
+      ? 'http://localhost:5001/api/login'
+      : 'http://localhost:5001/api/register';
       
     try {
-      console.log('Sending request to:', endpoint);
-      const response = await fetch(endpoint, {
+      console.log('Sending request to:', apiUrl);
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

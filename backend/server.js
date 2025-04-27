@@ -8,9 +8,15 @@ import AWS from 'aws-sdk';
 import jwt from 'jsonwebtoken';
 
 dotenv.config();
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error('MONGODB_URI is not defined in .env file');
+  process.exit(1);
+}
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 5001;  // Explicitly set port to 5001
 
 // Middleware
 app.use(cors({
@@ -51,41 +57,45 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in .env file');
     }
 
-    // Validate connection string format
-    if (!process.env.MONGODB_URI.startsWith('mongodb://') && 
-        !process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
-      throw new Error('Invalid MongoDB connection string format. Must start with mongodb:// or mongodb+srv://');
-    }
+    // Enable Mongoose debugging
+    mongoose.set('debug', true);
+    
+    // Log network information
+    console.log('Network Information:');
+    console.log('- Node.js version:', process.version);
+    console.log('- Platform:', process.platform);
+    console.log('- Architecture:', process.arch);
 
-    console.log('Attempting to connect to MongoDB...');
     // Log connection string with credentials hidden
-    const maskedUri = process.env.MONGODB_URI.replace(/\/\/[^@]+@/, '//****:****@');
-    console.log('Connection string:', maskedUri);
+    const maskedUri = uri
+    console.log('Using connection string:', maskedUri);
 
     // Connection options
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       retryWrites: true,
       w: 'majority'
     };
 
-    // If using direct connection (not SRV), force IPv4
-    if (process.env.MONGODB_URI.startsWith('mongodb://')) {
-      options.family = 4;
-    }
+    // Add event listeners for connection events
+    mongoose.connection.on('connecting', () => console.log('Mongoose: Connecting...'));
+    mongoose.connection.on('connected', () => console.log('Mongoose: Connected'));
+    mongoose.connection.on('disconnecting', () => console.log('Mongoose: Disconnecting...'));
+    mongoose.connection.on('disconnected', () => console.log('Mongoose: Disconnected'));
+    mongoose.connection.on('error', (err) => console.error('Mongoose: Error:', err));
 
-    const conn = await mongoose.connect(process.env.MONGODB_URI, options);
-
+    console.log('Attempting to establish connection...');
+    const conn = await mongoose.connect(uri, options);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`Database: ${conn.connection.name}`);
+    console.log(`Connection state: ${conn.connection.readyState}`);
   } catch (error) {
     console.error('❌ MongoDB connection error details:');
     console.error('- Error message:', error.message);
     console.error('- Error code:', error.code);
     console.error('- Error name:', error.name);
+    console.error('- Error stack:', error.stack);
     
     if (error.code === 'EBADNAME') {
       console.error('Invalid connection string format. Please check your MONGODB_URI in .env file.');
