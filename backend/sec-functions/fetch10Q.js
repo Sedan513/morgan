@@ -37,7 +37,7 @@ async function fetch10QHtmlFromTicker(ticker) {
   }
   if (!latestAcc) {
     console.warn(`No 10-Q filing found for ticker ${ticker}`);
-    return "N/A";
+    return "";
   }
   console.log(`Found 10-Q accession: ${latestAcc}`);
 

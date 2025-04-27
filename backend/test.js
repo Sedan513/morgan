@@ -2,13 +2,14 @@ import { fetch10KHtmlFromTicker } from "./sec-functions/fetch10K.js";
 import { fetch10QHtmlFromTicker } from "./sec-functions/fetch10Q.js";
 import { fetch8KHtmlFromTicker } from "./sec-functions/fetch8K.js";
 import { fetchCikFromTicker } from "./sec-functions/fetchCikFromTicker.js";
+import { getNews } from "./sec-functions/getNews.js";
 
 async function runTests() {
     console.log("Running tests...\n");
   
     // Test 1: fetch10QHtmlFromTicker
     try {
-      console.log(await fetchCikFromTicker("AAPL"));
+      console.log(await getNews("AAPL"));
       console.log("Testing fetch10QHtmlFromTicker with AAPL...");
       const tenQHtml = await fetch10QHtmlFromTicker("AAPL");
       if (typeof tenQHtml === "string" && tenQHtml.includes("<html")) {
