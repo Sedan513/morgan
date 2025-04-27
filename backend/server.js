@@ -51,18 +51,15 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in .env file');
     }
 
-    // Validate connection string format
     if (!process.env.MONGODB_URI.startsWith('mongodb://') && 
         !process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
       throw new Error('Invalid MongoDB connection string format. Must start with mongodb:// or mongodb+srv://');
     }
 
     console.log('Attempting to connect to MongoDB...');
-    // Log connection string with credentials hidden
     const maskedUri = process.env.MONGODB_URI.replace(/\/\/[^@]+@/, '//****:****@');
     console.log('Connection string:', maskedUri);
 
-    // Connection options
     const options = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -72,7 +69,6 @@ const connectDB = async () => {
       w: 'majority'
     };
 
-    // If using direct connection (not SRV), force IPv4
     if (process.env.MONGODB_URI.startsWith('mongodb://')) {
       options.family = 4;
     }
@@ -102,7 +98,6 @@ const connectDB = async () => {
   }
 };
 
-// Call the connectDB function
 connectDB();
 
 // Authentication routes
@@ -121,7 +116,6 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-// Create Secrets Manager client
 const secretsManager = new AWS.SecretsManager();
 
 // Load Google API Key from AWS Secrets Manager
@@ -155,15 +149,11 @@ async function generateGeminiContent(prompt) {
 
     const body = {
       contents: [
-        {
-          parts: [{ text: prompt }]
-        }
+        { parts: [{ text: prompt }] }
       ]
     };
 
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+    const headers = { 'Content-Type': 'application/json' };
 
     const response = await axios.post(url, body, { headers });
     const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -182,9 +172,8 @@ async function generateGeminiContent(prompt) {
 // Generate content endpoint (protected)
 app.post('/api/generate-content', authenticateToken, async (req, res) => {
   const { prompt } = req.body;
-
   if (!prompt) {
-    return res.status(400).json({ error: "Missing prompt in request body" });
+    return res.status(400).json({ error: 'Missing prompt in request body' });
   }
 
   try {

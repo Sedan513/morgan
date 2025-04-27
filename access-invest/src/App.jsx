@@ -1,14 +1,25 @@
 // src/App.jsx
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
+
 import StockChart from './components/StockChart';
 import Rating from './components/Rating';
-import AuthPage from './Auth.jsx'; // Fixed import path
+import AddStock from './components/AddStock';
+import AuthPage from './Auth.jsx';
 
-function Dashboard() {
-  const [selectedStock, setSelectedStock] = useState(null);
+import { UserProvider, useUser } from './contexts/UserContext';
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
+} from '@mui/material';
+
+function AppContent() {
+  const { user, loading } = useUser();
   const [stocks, setStocks] = useState([
     {
       ticker: 'AAPL',
@@ -54,25 +65,65 @@ function Dashboard() {
     }
   ]);
 
-  const navigate = useNavigate();
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [newSymbol, setNewSymbol] = useState('');
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/auth'); // Redirect to login if not authenticated
+  const handleAddStock = (symbol) => {
+    const newStock = {
+      ticker: symbol,
+      name: `${symbol} Inc.`,
+      lastUpdated: new Date(),
+      rating: Math.floor(Math.random() * 5) + 1,
+      chartData: [
+        { date: '2024-01-01', price: 100 },
+        { date: '2024-01-02', price: 102 },
+        { date: '2024-01-03', price: 98 },
+        { date: '2024-01-04', price: 105 },
+        { date: '2024-01-05', price: 103 },
+      ],
+      ratingExplanation: 'Newly added stock'
+    };
+    setStocks([newStock, ...stocks]);
+  };
+
+  const handleOpenAddDialog = () => setOpenAddDialog(true);
+  const handleCloseAddDialog = () => {
+    setOpenAddDialog(false);
+    setNewSymbol('');
+  };
+  const handleSubmitNewStock = () => {
+    if (newSymbol.trim()) {
+      handleAddStock(newSymbol.trim().toUpperCase());
+      handleCloseAddDialog();
     }
-  }, [navigate]);
+  };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="app-container">
       <header className="app-header">
         <h1>AccessInvest</h1>
+        {user && <div className="user-info">Welcome, {user.name}</div>}
       </header>
+
       <div className="main-content">
         <div className="stock-list">
-          {stocks.map((stock) => (
-            <div 
-              key={stock.ticker} 
+          <div className="stock-list-header">
+            <Button
+              variant="contained"
+              onClick={handleOpenAddDialog}
+              fullWidth
+              sx={{ height: '48px', fontSize: '1.1rem', fontWeight: 'bold' }}
+            >
+              Add Stock
+            </Button>
+          </div>
+
+          {stocks.map(stock => (
+            <div
+              key={stock.ticker}
               className="stock-card"
               onClick={() => setSelectedStock(stock)}
             >
@@ -88,6 +139,7 @@ function Dashboard() {
             </div>
           ))}
         </div>
+
         <div className="stock-detail">
           {selectedStock ? (
             <>
@@ -107,22 +159,67 @@ function Dashboard() {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={openAddDialog}
+        onClose={handleCloseAddDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            minWidth: '400px',
+            minHeight: '300px',
+            '& .MuiDialogTitle-root': { fontSize: '1.5rem' },
+          }
+        }}
+      >
+        <DialogTitle>Add New Stock</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Ticker Symbol"
+            fullWidth
+            value={newSymbol}
+            onChange={e => setNewSymbol(e.target.value)}
+            onKeyPress={e => e.key === 'Enter' && handleSubmitNewStock()}
+            sx={{ '& .MuiInputLabel-root': { fontSize: '1.2rem' } }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmitNewStock}>
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
 
+function Dashboard() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      navigate('/auth');
+    }
+  }, [navigate]);
+
+  return <AppContent />;
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Login/Signup page */}
-        <Route path="/auth" element={<AuthPage />} />
-        
-        {/* Protected dashboard */}
-        <Route path="/*" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/*" element={<Dashboard />} />
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }
 
 export default App;
+
