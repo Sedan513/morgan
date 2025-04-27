@@ -21,7 +21,7 @@ async function fetchFilingSection(ticker, formType) {
       ]
     });
    // console.log(text);
-    return text;
+    return text.slice(100, 3000);
 }
 
   export { fetchFilingSection };

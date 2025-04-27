@@ -5,15 +5,15 @@ const Rating = ({ value }) => {
   const getRatingText = (rating) => {
     switch (rating) {
       case 1:
-        return 'Very Bad';
+        return 'Very Negative';
       case 2:
-        return 'Bad';
+        return 'Negative';
       case 3:
         return 'Neutral';
       case 4:
-        return 'Good';
+        return 'Positive';
       case 5:
-        return 'Very Good';
+        return 'Very Positive';
       default:
         return 'Unknown';
     }
@@ -22,15 +22,15 @@ const Rating = ({ value }) => {
   const getColor = (rating) => {
     switch (rating) {
       case 1:
-        return '#ff0000'; // Dark red
+        return '#8B0000'; // Dark red
       case 2:
-        return '#ff6666'; // Light red
+        return '#FF0000'; // Regular red
       case 3:
-        return '#ffb366'; // Light orange
+        return '#FFD700'; // Yellow
       case 4:
-        return '#66ff66'; // Light green
+        return '#008000'; // Regular green
       case 5:
-        return '#00cc00'; // Dark green
+        return '#90EE90'; // Light green
       default:
         return '#cccccc'; // Default gray
     }
