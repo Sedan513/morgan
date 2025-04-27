@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ email: '', password: '', location: '', age: '' });
+  const [formData, setFormData] = useState({ email: '', password: '', name: '', age: '', location: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -81,9 +81,20 @@ export default function AuthPage() {
             />
           </div>
 
-          {/* Only show Location and Age fields when signing up */}
+          {/* Only show Name, Location and Age fields when signing up */}
           {!isLogin && (
             <>
+              <div>
+                <label>Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your full name"
+                  required
+                />
+              </div>
               <div>
                 <label>Location</label>
                 <input

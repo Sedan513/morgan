@@ -53,61 +53,19 @@ const authenticateToken = (req, res, next) => {
 // Connect to MongoDB with better error handling
 const connectDB = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in .env file');
-    }
-
-    // Enable Mongoose debugging
-    mongoose.set('debug', true);
+    console.log('Attempting to connect to MongoDB...');
+    console.log('Connection string:', uri);
     
-    // Log network information
-    console.log('Network Information:');
-    console.log('- Node.js version:', process.version);
-    console.log('- Platform:', process.platform);
-    console.log('- Architecture:', process.arch);
-
-    // Log connection string with credentials hidden
-    const maskedUri = uri
-    console.log('Using connection string:', maskedUri);
-
-    // Connection options
-    const options = {
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      retryWrites: true,
-      w: 'majority'
-    };
-
-    // Add event listeners for connection events
-    mongoose.connection.on('connecting', () => console.log('Mongoose: Connecting...'));
-    mongoose.connection.on('connected', () => console.log('Mongoose: Connected'));
-    mongoose.connection.on('disconnecting', () => console.log('Mongoose: Disconnecting...'));
-    mongoose.connection.on('disconnected', () => console.log('Mongoose: Disconnected'));
-    mongoose.connection.on('error', (err) => console.error('Mongoose: Error:', err));
-
-    console.log('Attempting to establish connection...');
-    const conn = await mongoose.connect(uri, options);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
+    });
+    
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log(`Database: ${conn.connection.name}`);
-    console.log(`Connection state: ${conn.connection.readyState}`);
   } catch (error) {
-    console.error('❌ MongoDB connection error details:');
-    console.error('- Error message:', error.message);
-    console.error('- Error code:', error.code);
-    console.error('- Error name:', error.name);
-    console.error('- Error stack:', error.stack);
-    
-    if (error.code === 'EBADNAME') {
-      console.error('Invalid connection string format. Please check your MONGODB_URI in .env file.');
-      console.error('Expected format: mongodb://username:password@host:port/database');
-    } else if (error.code === 'ENOTFOUND') {
-      console.error('DNS resolution failed. Check your internet connection and DNS settings.');
-    } else if (error.code === 'ETIMEDOUT') {
-      console.error('Connection timed out. Check your network connection and firewall settings.');
-    } else if (error.code === 'ECONNREFUSED') {
-      console.error('Connection refused. Check if MongoDB Atlas is running and your IP is whitelisted.');
-    }
-    
+    console.error('MongoDB connection error:', error);
     process.exit(1);
   }
 };

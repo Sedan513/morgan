@@ -13,45 +13,41 @@ const stockSchema = new mongoose.Schema({
 
 // User schema with full profile
 const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-  },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Email is required'],
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
   hashedPassword: {
     type: String,
-    required: true
+    required: [true, 'Password is required']
   },
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Name is required'],
+    trim: true,
+    minlength: [2, 'Name must be at least 2 characters long']
   },
   age: {
     type: Number,
-    required: true
+    required: [true, 'Age is required'],
+    min: [1, 'Age must be greater than 0']
   },
   location: {
     type: String,
-    required: true,
+    required: [true, 'Location is required'],
     trim: true
-  },
-  birthday: {
-    type: Date,
-    required: true
   },
   stocks: [stockSchema]
 }, {
   timestamps: true // createdAt, updatedAt fields
 });
+
+// Add index for email
+userSchema.index({ email: 1 }, { unique: true });
 
 // --- Instance methods ---
 
