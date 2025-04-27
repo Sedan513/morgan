@@ -6,9 +6,10 @@ import dotenv from 'dotenv';
 import { registerUser, loginUser } from './controllers/authController.js';
 import AWS from 'aws-sdk';
 import jwt from 'jsonwebtoken';
-import { fetch8KHtmlFromTicker } from './sec-functions/fetch8K.js';
-import { fetch10KHtmlFromTicker } from './sec-functions/fetch10K.js';
-import { fetch10QHtmlFromTicker } from './sec-functions/fetch10Q.js';
+//import { fetch8KHtmlFromTicker } from './sec-functions/fetch8K.js';
+//import { fetch10KHtmlFromTicker } from './sec-functions/fetch10K.js';
+//import { fetch10QHtmlFromTicker } from './sec-functions/fetch10Q.js';
+import { fetchFilingSection } from './sec-functions/fetch.js';
 import User from './models/User.js';
 import { getNews } from './sec-functions/getNews.js';
 
@@ -151,9 +152,47 @@ async function loadGoogleApiKey() {
     throw error;
   }
 }
+// Load SEC API Key from AWS Secrets Manager
+async function loadSecApiKey() {
+  try {
+    const data = await secretsManager.getSecretValue({ SecretId: process.env.SECRET_ID }).promise();
+    if ('SecretString' in data) {
+      const secret = JSON.parse(data.SecretString);
+      return secret.sec;
+    } else {
+      const buff = Buffer.from(data.SecretBinary, 'base64');
+      const decodedBinarySecret = buff.toString('ascii');
+      const secret = JSON.parse(decodedBinarySecret);
+      return secret.sec;
+    }
+  } catch (error) {
+    console.error('Error loading SEC API key from AWS:', error);
+    throw error;
+  }
+}
+
+async function loadFMPApiKey() {
+  try {
+    const data = await secretsManager.getSecretValue({ SecretId: process.env.SECRET_ID }).promise();
+    if ('SecretString' in data) {
+      const secret = JSON.parse(data.SecretString);
+      return secret.fmp;
+    }
+    else {
+      const buff = Buffer.from(data.SecretBinary, 'base64');
+      const decodedBinarySecret = buff.toString('ascii');
+      const secret = JSON.parse(decodedBinarySecret);
+      return secret.fmp;
+    }
+  } catch (error) {
+    console.error('Error loading FMP API key from AWS:', error);
+    throw error;
+  }
+}
+export { loadFMPApiKey };
 
 // Gemini API Configuration
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 
 // Gemini API Request Helper
 async function generateGeminiContent(prompt) {
@@ -212,11 +251,11 @@ app.post('/api/sec-filings', authenticateToken, async (req, res) => {
   try {
     let result;
     if (type === '8K') {
-      result = await fetch8KHtmlFromTicker(ticker);
+      result = await fetchFilingSection(ticker, '8-K');
     } else if (type === '10K') {
-      result = await fetch10KHtmlFromTicker(ticker);
+      result = await fetchFilingSection(ticker, '10-K');
     } else if (type === '10Q') {
-      result = await fetch10QHtmlFromTicker(ticker);
+      result = await fetchFilingSection(ticker, '10-Q');
     } else {
       return res.status(400).json({ error: 'Invalid filing type' });
     }
@@ -283,3 +322,5 @@ const handleAddStockSubmit = async (e) => {
     alert('Network error');
   }
 };
+
+export { loadSecApiKey };
