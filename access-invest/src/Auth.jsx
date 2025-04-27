@@ -1,6 +1,7 @@
 // src/pages/Auth.jsx
 import './auth.css';
 import React, { useState } from 'react';
+import logo from './assets/newlogo2.png'; // Add this at the top
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -53,10 +54,12 @@ export default function AuthPage() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-header">
-          {isLogin ? 'Login to AccessInvest' : 'Create your AccessInvest Account'}
-        </h1>
-
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <img src={logo} alt="AccessInvest Logo" style={{ height: '48px', marginBottom: '0.5rem' }} />
+          <h1 className="auth-header">
+            {isLogin ? 'Login to AccessInvest' : 'Create your AccessInvest Account'}
+          </h1>
+        </div>
         <form onSubmit={handleSubmit} className="auth-form">
           <div>
             <label>Email</label>

@@ -3,15 +3,14 @@ import { fetch10QHtmlFromTicker } from "./sec-functions/fetch10Q.js";
 import { fetch8KHtmlFromTicker } from "./sec-functions/fetch8K.js";
 import { fetchCikFromTicker } from "./sec-functions/fetchCikFromTicker.js";
 import { getNews } from "./sec-functions/getNews.js";
-
+import { fetchFilingSection } from "./sec-functions/fetch.js";
 async function runTests() {
     console.log("Running tests...\n");
   
     // Test 1: fetch10QHtmlFromTicker
     try {
-      console.log(await getNews("AAPL"));
       console.log("Testing fetch10QHtmlFromTicker with AAPL...");
-      const tenQHtml = await fetch10QHtmlFromTicker("AAPL");
+      const tenQHtml = await fetchFilingSection("AAPL", "10-Q");
       if (typeof tenQHtml === "string" && tenQHtml.includes("<html")) {
         console.log("✅ fetch10QHtmlFromTicker passed.\n");
       } else {
@@ -24,7 +23,7 @@ async function runTests() {
     // Test 2: fetch8KHtmlFromTicker
     try {
       console.log("Testing fetch8KHtmlFromTicker with AAPL...");
-      const eightKHtml = await fetch8KHtmlFromTicker("AAPL");
+      const eightKHtml = await fetchFilingSection("AAPL", "8-K");
       if (typeof eightKHtml === "string" && eightKHtml.includes("<html")) {
         console.log("✅ fetch8KHtmlFromTicker passed.\n");
       } else {
@@ -37,7 +36,8 @@ async function runTests() {
     // Test 3: fetch10KHtmlFromTicker (if you have it)
     try {
       console.log("Testing fetch10KHtmlFromTicker with AAPL...");
-      const tenKHtml = await fetch10KHtmlFromTicker("AAPL");
+      const tenKHtml = await fetchFilingSection("AAPL", "10-K");
+      console.log(tenKHtml);
       if (typeof tenKHtml === "string" && tenKHtml.includes("<html")) {
         console.log("✅ fetch10KHtmlFromTicker passed.\n");
       } else {
