@@ -26,47 +26,11 @@ function Dashboard() {
   const [newShares, setNewShares] = useState('');
   const [deletingStock, setDeletingStock] = useState(null);
 
-  const [stocks, setStocks] = useState([
-    {
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      lastUpdated: new Date(),
-      rating: 5,
-      chartData: [
-        { date: '2024-01-01', price: 150 },
-        { date: '2024-01-02', price: 152 },
-        { date: '2024-01-03', price: 148 },
-        { date: '2024-01-04', price: 155 },
-        { date: '2024-01-05', price: 153 },
-      ]
-    },
-    {
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      lastUpdated: new Date(),
-      rating: 3,
-      chartData: [
-        { date: '2024-01-01', price: 2800 },
-        { date: '2024-01-02', price: 2820 },
-        { date: '2024-01-03', price: 2790 },
-        { date: '2024-01-04', price: 2810 },
-        { date: '2024-01-05', price: 2830 },
-      ]
-    },
-    {
-      ticker: 'MSFT',
-      name: 'Microsoft Corporation',
-      lastUpdated: new Date(),
-      rating: 4,
-      chartData: [
-        { date: '2024-01-01', price: 350 },
-        { date: '2024-01-02', price: 352 },
-        { date: '2024-01-03', price: 355 },
-        { date: '2024-01-04', price: 358 },
-        { date: '2024-01-05', price: 360 },
-      ]
-    }
-  ]);
+  const [stocks, setStocks] = useState(() => {
+    // Try to load from localStorage first
+    const saved = localStorage.getItem('stocks');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [loadingExplanations, setLoadingExplanations] = useState(false);
 
   const navigate = useNavigate();
@@ -257,6 +221,11 @@ function Dashboard() {
     setSelectedStock(stock);
   };
 
+  // Save stocks to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('stocks', JSON.stringify(stocks));
+  }, [stocks]);
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -301,6 +270,14 @@ function Dashboard() {
                 className="stock-card"
                 onClick={() => handleStockSelect(stock)}
               >
+                {/* Delete Button Top Right */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); openDeleteModal(stock); }}
+                  className="delete-btn top-right"
+                  title="Delete"
+                >
+                  Delete
+                </button>
                 <div className="stock-header">
                   <h3>{stock.ticker}</h3>
                   <span className="company-name">{stock.name}</span>
@@ -316,22 +293,6 @@ function Dashboard() {
                   <Rating value={stock.rating} />
                 </div>
                 <StockChart data={stock.chartData} size="small" />
-                
-                {/* Edit + Delete Buttons */}
-                <div className="stock-card-buttons">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); openEditModal(stock); }}
-                    className="edit-btn"
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); openDeleteModal(stock); }}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
-                </div>
               </div>
             ))}
 

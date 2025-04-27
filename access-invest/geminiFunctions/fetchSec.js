@@ -36,6 +36,7 @@ async function fetchPrices(ticker) {
     throw new Error(data.error || 'Failed to fetch prices');
   }
 }
+export { fetchPrices };
 
 // // Usage example:
 // fetchSecFiling('AAPL', '10K')
