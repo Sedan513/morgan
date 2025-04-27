@@ -172,9 +172,9 @@ function Dashboard() {
             if (stock.explanation10K && stock.explanation10Q && stock.explanation8K) {
               return stock;
             }
-            const explanation10K = await fetchGeminiContent(`Summarize the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
-            const explanation10Q = await fetchGeminiContent(`Summarize the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
-            const explanation8K = await fetchGeminiContent(`Summarize the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            const explanation10K = await fetchGeminiContent(`Below is include the HTML for the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            const explanation10Q = await fetchGeminiContent(`Below is include the HTML for the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            const explanation8K = await fetchGeminiContent(`Below is include the HTML for the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
             return {
               ...stock,
               explanation10K,
@@ -242,7 +242,12 @@ function Dashboard() {
                     <span className="company-name">{stock.name}</span>
                   </div>
                   <div className="stock-info">
-                    <p>Last Updated: {stock.lastUpdated.toLocaleString()}</p>
+                    <p>
+                      Last Updated:{" "}
+                      {stock.lastUpdated
+                        ? new Date(stock.lastUpdated).toLocaleString()
+                        : "N/A"}
+                    </p>
                     <Rating value={stock.rating} />
                   </div>
                   <StockChart data={stock.chartData} size="small" />
@@ -257,7 +262,12 @@ function Dashboard() {
                     <span className="company-name">{selectedStock.name}</span>
                   </div>
                   <div className="stock-info">
-                    <p>Last Updated: {selectedStock.lastUpdated.toLocaleString()}</p>
+                    <p>
+                      Last Updated:{" "}
+                      {selectedStock.lastUpdated
+                        ? new Date(selectedStock.lastUpdated).toLocaleString()
+                        : "N/A"}
+                    </p>
                     <Rating value={selectedStock.rating} />
                     {selectedStock.explanation10K && (
                       <div>

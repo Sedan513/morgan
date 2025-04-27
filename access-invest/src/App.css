@@ -154,6 +154,10 @@
   color: #666;
 }
 
+.stock-info strong {
+  color: #111;
+}
+
 /* Add responsive design */
 @media (max-width: 768px) {
   .main-content {
