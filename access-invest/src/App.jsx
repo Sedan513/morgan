@@ -2,8 +2,12 @@ import { useState } from 'react'
 import './App.css'
 import StockChart from './components/StockChart'
 import Rating from './components/Rating'
+import AddStock from './components/AddStock'
+import { UserProvider, useUser } from './contexts/UserContext'
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material'
 
-function App() {
+function AppContent() {
+  const { user, loading, addStock } = useUser();
   const [selectedStock, setSelectedStock] = useState(null)
   const [stocks, setStocks] = useState([
     {
@@ -49,14 +53,70 @@ function App() {
       ratingExplanation: 'Strong cloud services growth and AI initiatives'
     }
   ])
+  const [openAddDialog, setOpenAddDialog] = useState(false)
+  const [newSymbol, setNewSymbol] = useState('')
+
+  const handleAddStock = (symbol) => {
+    const newStock = {
+      ticker: symbol,
+      name: `${symbol} Inc.`,
+      lastUpdated: new Date(),
+      rating: Math.floor(Math.random() * 5) + 1,
+      chartData: [
+        { date: '2024-01-01', price: 100 },
+        { date: '2024-01-02', price: 102 },
+        { date: '2024-01-03', price: 98 },
+        { date: '2024-01-04', price: 105 },
+        { date: '2024-01-05', price: 103 },
+      ],
+      ratingExplanation: 'Newly added stock'
+    };
+    setStocks([...stocks, newStock]);
+  };
+
+  const handleOpenAddDialog = () => {
+    setOpenAddDialog(true);
+  };
+
+  const handleCloseAddDialog = () => {
+    setOpenAddDialog(false);
+    setNewSymbol('');
+  };
+
+  const handleSubmitNewStock = () => {
+    if (newSymbol.trim()) {
+      handleAddStock(newSymbol.trim().toUpperCase());
+      handleCloseAddDialog();
+    }
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="app-container">
       <header className="app-header">
         <h1>AccessInvest</h1>
+        {user && <div className="user-info">Welcome, {user.name}</div>}
       </header>
       <div className="main-content">
         <div className="stock-list">
+          <div className="stock-list-header">
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleOpenAddDialog}
+              fullWidth
+              sx={{ 
+                height: '48px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold'
+              }}
+            >
+              Add Stock
+            </Button>
+          </div>
           {stocks.map((stock) => (
             <div 
               key={stock.ticker} 
@@ -94,8 +154,42 @@ function App() {
           )}
         </div>
       </div>
+
+      <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
+        <DialogTitle>Add New Stock</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Ticker Symbol"
+            type="text"
+            fullWidth
+            value={newSymbol}
+            onChange={(e) => setNewSymbol(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSubmitNewStock();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddDialog}>Cancel</Button>
+          <Button onClick={handleSubmitNewStock} variant="contained" color="primary">
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
+  );
+}
+
+export default App;
