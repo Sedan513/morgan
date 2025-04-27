@@ -8,3 +8,5 @@ AccessInvest is a platform that helps users manage and analyze their personal st
 
 ## Inspiration
 Access to smart investing tools has too often been limited to the wealthy and well-connected. We believe that needs to change. AccessInvest was created to level the financial playing field, giving everyone — not just the elite — the power to manage their portfolios intelligently. With nearly 84% of high-income households owning stocks compared to just 29% of lower-income households, the gap in financial opportunity is undeniable. As a new generation steps into the world of investing, there is an urgent need to make financial literacy more accessible, understandable, and empowering. We were driven by a simple idea: building wealth shouldn’t be exclusive. It should be something that anyone can achieve with the right tools and information.
+
+Created by Sebastian Rincon Camacho, Aviel Rosen, and Jacob Gutsin for MorganHacks '25
