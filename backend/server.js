@@ -1,14 +1,85 @@
-const express = require('express');
-const AWS = require('aws-sdk');
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import { registerUser, loginUser } from './controllers/authController.js';
+import AWS from 'aws-sdk';
+import jwt from 'jsonwebtoken';
 
-const axios = require('axios');
-require('dotenv').config();
+dotenv.config();
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error('MONGODB_URI is not defined in .env file');
+  process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Middleware
+app.use(cors({
+  origin: '*', // Allow all origins during development
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
+// JWT Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Connect to MongoDB with better error handling
+const connectDB = async () => {
+  try {
+    console.log('Attempting to connect to MongoDB...');
+    console.log('Connection string:', uri);
+    
+    const conn = await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
+    });
+    
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database: ${conn.connection.name}`);
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  }
+};
+
+connectDB();
+
+// Authentication routes
+app.post('/api/register', registerUser);
+app.post('/api/login', loginUser);
+
+// Protected route example
+app.get('/api/profile', authenticateToken, (req, res) => {
+  res.json({ message: 'Protected route accessed successfully', user: req.user });
+});
 
 // Configure AWS SDK
 AWS.config.update({
@@ -17,60 +88,88 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-// Create Secrets Manager client
 const secretsManager = new AWS.SecretsManager();
-// Load Google API Key once
+
+// Load Google API Key from AWS Secrets Manager
 async function loadGoogleApiKey() {
-  const data = await secretsManager.getSecretValue({ SecretId: process.env.SECRET_ID }).promise();
-  
-  if ('SecretString' in data) {
-    const secret = JSON.parse(data.SecretString);
-    return secret.GOOGLE_GEMINI_API_KEY;
-  } else {
-    const buff = Buffer.from(data.SecretBinary, 'base64');
-    const decodedBinarySecret = buff.toString('ascii');
-    const secret = JSON.parse(decodedBinarySecret);
-    return secret.GOOGLE_GEMINI_API_KEY;
+  try {
+    const data = await secretsManager.getSecretValue({ SecretId: process.env.SECRET_ID }).promise();
+    
+    if ('SecretString' in data) {
+      const secret = JSON.parse(data.SecretString);
+      return secret.GOOGLE_GEMINI_API_KEY;
+    } else {
+      const buff = Buffer.from(data.SecretBinary, 'base64');
+      const decodedBinarySecret = buff.toString('ascii');
+      const secret = JSON.parse(decodedBinarySecret);
+      return secret.GOOGLE_GEMINI_API_KEY;
+    }
+  } catch (error) {
+    console.error('Error loading API key from AWS:', error);
+    throw error;
   }
 }
 
-// 🔥 New COMBINED function: Send prompt & get AI response
+// Gemini API Configuration
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+
+// Gemini API Request Helper
 async function generateGeminiContent(prompt) {
-  const apiKey = await loadGoogleApiKey();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+  try {
+    const apiKey = await loadGoogleApiKey();
+    const url = `${GEMINI_API_URL}?key=${apiKey}`;
 
-  const body = {
-    contents: [
-      {
-        parts: [{ text: prompt }]
-      }
-    ]
-  };
+    const body = {
+      contents: [
+        {
+          parts: [{ text: prompt }]
+        }
+      ]
+    };
 
-  const headers = {
-    'Content-Type': 'application/json',
-  };
+    const headers = {
+      'Content-Type': 'application/json',
+    };
 
-  const response = await axios.post(url, body, { headers });
+    const response = await axios.post(url, body, { headers });
+    const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      throw new Error('Invalid response from Gemini API');
+    }
 
-  // 🔥 Here: directly parse and return the text (not full raw object)
-  const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  
-  if (!text) {
-    throw new Error('Invalid response from Gemini API');
+    return text;
+  } catch (error) {
+    console.error('Gemini API error:', error.response?.data || error.message);
+    throw error;
   }
-
-  return text; // 🔥 Clean, just the AI text
 }
-/*
-// Final Route: Generate AI content with one simple call
-app.post('/generate-content', async (req, res) => {
+
+// Generate content endpoint (protected)
+app.post('/api/generate-content', authenticateToken, async (req, res) => {
   const { prompt } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: "Missing prompt in request body" });
   }
-*/
+
+  try {
+    const generatedText = await generateGeminiContent(prompt);
+    res.json({ text: generatedText });
+  } catch (error) {
+    console.error('Error generating content:', error);
+    res.status(500).json({ error: 'Error generating content from Gemini' });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Server URL: http://localhost:${port}`);
 });
