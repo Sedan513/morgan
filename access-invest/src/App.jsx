@@ -130,12 +130,19 @@ function Dashboard() {
       const explanation10K = await fetchGeminiContent(`Summarize the following 10-K filing in a short paragraph. ${tenKData}`);
       const explanation10Q = await fetchGeminiContent(`Summarize the following 10-Q filing in a short paragraph. ${tenQData}.`);
       const explanation8K = await fetchGeminiContent(`Summarize the following 8-K filing in a short paragraph. ${eightKData}.`);
+      const recentNews = await fetchGeminiContent(newStock.ticker);
+      const rateRaw = await fetchGeminiContent(`return a integer between 1 and 5 that describes the sentiment of the news headlines where 1 means sentiment is very negative and 5 means the sentiment is very positive return only an integer and nothing else. ${recentNews}.`);
+      let rate = parseInt(rateRaw, 10);
+      if (isNaN(rate) || rate < 1 || rate > 5) {
+        rate = 3; // Default to Neutral if invalid
+      }
+      console.log(rate);
 
       // 3. Add the new stock with its explanations to the state
       const newStockWithData = {
         ...newStock,
         lastUpdated: new Date(),
-        rating: 0,
+        rating: rate,
         chartData: [],
         explanation10K,
         explanation10Q,
