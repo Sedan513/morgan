@@ -1,10 +1,14 @@
-import { useState } from 'react'
-import './App.css'
-import StockChart from './components/StockChart'
-import Rating from './components/Rating'
+// src/App.jsx
 
-function App() {
-  const [selectedStock, setSelectedStock] = useState(null)
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import './App.css';
+import StockChart from './components/StockChart';
+import Rating from './components/Rating';
+import AuthPage from './Auth.jsx'; // Fixed import path
+
+function Dashboard() {
+  const [selectedStock, setSelectedStock] = useState(null);
   const [stocks, setStocks] = useState([
     {
       ticker: 'AAPL',
@@ -48,7 +52,16 @@ function App() {
       ],
       ratingExplanation: 'Strong cloud services growth and AI initiatives'
     }
-  ])
+  ]);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/auth'); // Redirect to login if not authenticated
+    }
+  }, [navigate]);
 
   return (
     <div className="app-container">
@@ -95,7 +108,21 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Login/Signup page */}
+        <Route path="/auth" element={<AuthPage />} />
+        
+        {/* Protected dashboard */}
+        <Route path="/*" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
