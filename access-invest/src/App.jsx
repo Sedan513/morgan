@@ -22,47 +22,15 @@ function Dashboard() {
     shares: '',
     date: ''
   });
-  const [stocks, setStocks] = useState([
-    {
-      ticker: 'AAPL',
-      name: 'Apple Inc.',
-      lastUpdated: new Date(),
-      rating: 5,
-      chartData: [
-        { date: '2024-01-01', price: 150 },
-        { date: '2024-01-02', price: 152 },
-        { date: '2024-01-03', price: 148 },
-        { date: '2024-01-04', price: 155 },
-        { date: '2024-01-05', price: 153 },
-      ]
-    },
-    {
-      ticker: 'GOOGL',
-      name: 'Alphabet Inc.',
-      lastUpdated: new Date(),
-      rating: 3,
-      chartData: [
-        { date: '2024-01-01', price: 2800 },
-        { date: '2024-01-02', price: 2820 },
-        { date: '2024-01-03', price: 2790 },
-        { date: '2024-01-04', price: 2810 },
-        { date: '2024-01-05', price: 2830 },
-      ]
-    },
-    {
-      ticker: 'MSFT',
-      name: 'Microsoft Corporation',
-      lastUpdated: new Date(),
-      rating: 4,
-      chartData: [
-        { date: '2024-01-01', price: 350 },
-        { date: '2024-01-02', price: 352 },
-        { date: '2024-01-03', price: 355 },
-        { date: '2024-01-04', price: 358 },
-        { date: '2024-01-05', price: 360 },
-      ]
-    }
-  ]);
+  const [editingStock, setEditingStock] = useState(null);
+  const [newShares, setNewShares] = useState('');
+  const [deletingStock, setDeletingStock] = useState(null);
+
+  const [stocks, setStocks] = useState(() => {
+    // Try to load from localStorage first
+    const saved = localStorage.getItem('stocks');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [loadingExplanations, setLoadingExplanations] = useState(false);
 
   const navigate = useNavigate();
@@ -98,6 +66,82 @@ function Dashboard() {
   const handleAddStockChange = (e) => {
     setNewStock({ ...newStock, [e.target.name]: e.target.value });
   };
+
+  function openEditModal(stock) {
+    setEditingStock(stock);
+    setNewShares(stock.shares);
+  }
+  
+  function closeEditModal() {
+    setEditingStock(null);
+    setNewShares('');
+  }
+  
+  async function saveNewShares() {
+    if (!newShares || isNaN(newShares) || Number(newShares) <= 0) {
+      alert("Please enter a valid number of shares.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/update-shares', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ticker: editingStock.ticker,
+          shares: newShares
+        })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || "Failed to update shares.");
+        return;
+      }
+      setStocks(prev => prev.map(stock => 
+        stock.ticker === editingStock.ticker
+        ? { ...stock, shares: newShares }
+        : stock
+      ));
+      closeEditModal();
+    } catch (err) {
+      alert("Network error.");
+    }
+  }
+  
+  function openDeleteModal(stock) {
+    setDeletingStock(stock);
+  }
+  
+  async function confirmDelete() {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/delete-stock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ticker: deletingStock.ticker })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || "Failed to delete stock.");
+        return;
+      }
+      setStocks(prev => prev.filter(stock => stock.ticker !== deletingStock.ticker));
+      setDeletingStock(null);
+    } catch (err) {
+      alert("Network error.");
+    }
+  }
+  
+  function closeDeleteModal() {
+    setDeletingStock(null);
+  }
+  
   
   const handleAddStockSubmit = async (e) => {
     e.preventDefault();
@@ -177,6 +221,11 @@ function Dashboard() {
     setSelectedStock(stock);
   };
 
+  // Save stocks to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('stocks', JSON.stringify(stocks));
+  }, [stocks]);
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -215,28 +264,38 @@ function Dashboard() {
                 <span style={{ fontSize: 22, marginRight: 8 }}>＋</span>
                 Add Stock
             </button>
-              {stocks.map((stock) => (
-                <div 
-                  key={stock.ticker} 
-                  className="stock-card"
-                  onClick={() => handleStockSelect(stock)}
+            {stocks.map((stock) => (
+              <div 
+                key={stock.ticker} 
+                className="stock-card"
+                onClick={() => handleStockSelect(stock)}
+              >
+                {/* Delete Button Top Right */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); openDeleteModal(stock); }}
+                  className="delete-btn top-right"
+                  title="Delete"
                 >
-                  <div className="stock-header">
-                    <h3>{stock.ticker}</h3>
-                    <span className="company-name">{stock.name}</span>
-                  </div>
-                  <div className="stock-info">
-                    <p>
-                      Last Updated:{" "}
-                      {stock.lastUpdated
-                        ? new Date(stock.lastUpdated).toLocaleString()
-                        : "N/A"}
-                    </p>
-                    <Rating value={stock.rating} />
-                  </div>
-                  <StockChart data={stock.chartData} size="small" />
+                  Delete
+                </button>
+                <div className="stock-header">
+                  <h3>{stock.ticker}</h3>
+                  <span className="company-name">{stock.name}</span>
                 </div>
-              ))}
+                <div className="stock-info">
+                  <p>Shares: {stock.shares}</p>
+                  <p>
+                    Last Updated:{" "}
+                    {stock.lastUpdated
+                      ? new Date(stock.lastUpdated).toLocaleString()
+                      : "N/A"}
+                  </p>
+                  <Rating value={stock.rating} />
+                </div>
+                <StockChart data={stock.chartData} size="small" />
+              </div>
+            ))}
+
             </div>
             <div className="stock-detail">
               {selectedStock ? (
@@ -335,6 +394,38 @@ function Dashboard() {
           </div>
         </div>
       )}
+      {editingStock && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Edit Shares for {editingStock.name}</h2>
+            <input 
+              type="number" 
+              value={newShares} 
+              onChange={(e) => setNewShares(e.target.value)} 
+              min="1"
+              required
+            />
+            <div className="modal-actions">
+              <button onClick={closeEditModal}>Cancel</button>
+              <button onClick={saveNewShares} className="add-stock-btn" style={{margin:0}}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingStock && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Confirm Deletion</h2>
+            <p>Are you sure you want to delete {deletingStock.name}?</p>
+            <div className="modal-actions">
+              <button onClick={closeDeleteModal}>Cancel</button>
+              <button onClick={confirmDelete} className="add-stock-btn" style={{margin:0}}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
