@@ -8,6 +8,9 @@ import Rating from './components/Rating';
 import AuthPage from './Auth.jsx'; // Fixed import path
 import logo from './assets/newlogo2.png'; // Add this at the top
 import { useRef } from 'react';
+import { fetchSecFiling } from '../geminiFunctions/fetchSec.js';
+import { fetchGeminiContent } from '../geminiFunctions/geminiRequest.js';
+import { fetchFullUserProfile } from '../geminiFunctions/fetchFullUserProfile.js';
 
 function Dashboard() {
   const [selectedStock, setSelectedStock] = useState(null);
@@ -62,6 +65,7 @@ function Dashboard() {
       ratingExplanation: 'Strong cloud services growth and AI initiatives'
     }
   ]);
+  const [loadingExplanations, setLoadingExplanations] = useState(false);
 
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -97,25 +101,97 @@ function Dashboard() {
     setNewStock({ ...newStock, [e.target.name]: e.target.value });
   };
   
-  const handleAddStockSubmit = (e) => {
+  const handleAddStockSubmit = async (e) => {
     e.preventDefault();
-    // Add the new stock to the list (you can replace this with an API call)
-    setStocks([
-      {
-        ticker: newStock.ticker,
-        name: newStock.name,
-        lastUpdated: new Date(),
-        rating: 0,
-        chartData: [],
-        ratingExplanation: '',
-        shares: newStock.shares,
-        purchaseDate: newStock.date
-      },
-      ...stocks
-    ]);
-    setShowAddModal(false);
-    setNewStock({ ticker: '', name: '', shares: '', date: '' });
+    try {
+      const token = localStorage.getItem('token');
+      // 1. Add the stock to the backend
+      const response = await fetch('http://localhost:5001/api/add-stock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ticker: newStock.ticker,
+          name: newStock.name,
+          shares: newStock.shares,
+          date: newStock.date
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to add stock');
+        return;
+      }
+
+      // 2. Fetch Gemini explanations for the new stock
+      const tenKData = await fetchSecFiling(newStock.ticker, '10K');
+      const tenQData = await fetchSecFiling(newStock.ticker, '10Q');
+      const eightKData = await fetchSecFiling(newStock.ticker, '8K');
+      const explanation10K = await fetchGeminiContent(`Summarize the following 10-K filing in a short paragraph. ${tenKData}`);
+      const explanation10Q = await fetchGeminiContent(`Summarize the following 10-Q filing in a short paragraph. ${tenQData}.`);
+      const explanation8K = await fetchGeminiContent(`Summarize the following 8-K filing in a short paragraph. ${eightKData}.`);
+
+      // 3. Refetch the full user profile and update stocks
+      const user = await fetchFullUserProfile();
+      setStocks([
+        {
+          ...newStock,
+          lastUpdated: new Date(),
+          rating: 0,
+          chartData: [],
+          explanation10K,
+          explanation10Q,
+          explanation8K,
+        },
+        ...user.stocks
+      ]);
+
+      setShowAddModal(false);
+      setNewStock({ ticker: '', name: '', shares: '', date: '' });
+    } catch (err) {
+      alert('Network error');
+    }
   };
+
+  const handleStockSelect = (stock) => {
+    setSelectedStock(stock);
+  };
+
+  // Fetch and attach explanations to all stocks on initial load
+  useEffect(() => {
+    async function fetchProfileAndExplanations() {
+      setLoadingExplanations(true);
+      try {
+        const user = await fetchFullUserProfile();
+        // For each stock, fetch explanations if not present
+        const stocksWithExplanations = await Promise.all(
+          user.stocks.map(async (stock) => {
+            // Only fetch if not present
+            if (stock.explanation10K && stock.explanation10Q && stock.explanation8K) {
+              return stock;
+            }
+            const explanation10K = await fetchGeminiContent(`Summarize the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            const explanation10Q = await fetchGeminiContent(`Summarize the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            const explanation8K = await fetchGeminiContent(`Summarize the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
+            return {
+              ...stock,
+              explanation10K,
+              explanation10Q,
+              explanation8K,
+            };
+          })
+        );
+        setStocks(stocksWithExplanations);
+      } catch (err) {
+        // Optionally handle error
+      } finally {
+        setLoadingExplanations(false);
+      }
+    }
+    fetchProfileAndExplanations();
+  }, []);
 
   return (
     <div className="app-container">
@@ -143,50 +219,73 @@ function Dashboard() {
         </div>
       </header>
       <div className="main-content">
-        <div className="stock-list">
-        <button
-            className="add-stock-btn"
-            onClick={() => setShowAddModal(true)}
-          >
-            <span style={{ fontSize: 22, marginRight: 8 }}>＋</span>
-            Add Stock
-        </button>
-          {stocks.map((stock) => (
-            <div 
-              key={stock.ticker} 
-              className="stock-card"
-              onClick={() => setSelectedStock(stock)}
-            >
-              <div className="stock-header">
-                <h3>{stock.ticker}</h3>
-                <span className="company-name">{stock.name}</span>
-              </div>
-              <div className="stock-info">
-                <p>Last Updated: {stock.lastUpdated.toLocaleString()}</p>
-                <Rating value={stock.rating} />
-              </div>
-              <StockChart data={stock.chartData} size="small" />
+        {loadingExplanations ? (
+          <div style={{ padding: '2rem', width: '100%' }}>Loading stock explanations...</div>
+        ) : (
+          <>
+            <div className="stock-list">
+            <button
+                className="add-stock-btn"
+                onClick={() => setShowAddModal(true)}
+              >
+                <span style={{ fontSize: 22, marginRight: 8 }}>＋</span>
+                Add Stock
+            </button>
+              {stocks.map((stock) => (
+                <div 
+                  key={stock.ticker} 
+                  className="stock-card"
+                  onClick={() => handleStockSelect(stock)}
+                >
+                  <div className="stock-header">
+                    <h3>{stock.ticker}</h3>
+                    <span className="company-name">{stock.name}</span>
+                  </div>
+                  <div className="stock-info">
+                    <p>Last Updated: {stock.lastUpdated.toLocaleString()}</p>
+                    <Rating value={stock.rating} />
+                  </div>
+                  <StockChart data={stock.chartData} size="small" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="stock-detail">
-          {selectedStock ? (
-            <>
-              <div className="stock-header">
-                <h2>{selectedStock.ticker}</h2>
-                <span className="company-name">{selectedStock.name}</span>
-              </div>
-              <div className="stock-info">
-                <p>Last Updated: {selectedStock.lastUpdated.toLocaleString()}</p>
-                <Rating value={selectedStock.rating} />
-                <p>Explanation: {selectedStock.ratingExplanation}</p>
-              </div>
-              <StockChart data={selectedStock.chartData} size="large" />
-            </>
-          ) : (
-            <p>Select a stock to view details</p>
-          )}
-        </div>
+            <div className="stock-detail">
+              {selectedStock ? (
+                <>
+                  <div className="stock-header">
+                    <h2>{selectedStock.ticker}</h2>
+                    <span className="company-name">{selectedStock.name}</span>
+                  </div>
+                  <div className="stock-info">
+                    <p>Last Updated: {selectedStock.lastUpdated.toLocaleString()}</p>
+                    <Rating value={selectedStock.rating} />
+                    {selectedStock.explanation10K && (
+                      <div>
+                        <strong>10-K Summary:</strong>
+                        <p>{selectedStock.explanation10K}</p>
+                      </div>
+                    )}
+                    {selectedStock.explanation10Q && (
+                      <div>
+                        <strong>10-Q Summary:</strong>
+                        <p>{selectedStock.explanation10Q}</p>
+                      </div>
+                    )}
+                    {selectedStock.explanation8K && (
+                      <div>
+                        <strong>8-K Summary:</strong>
+                        <p>{selectedStock.explanation8K}</p>
+                      </div>
+                    )}
+                  </div>
+                  <StockChart data={selectedStock.chartData} size="large" />
+                </>
+              ) : (
+                <p>Select a stock to view details</p>
+              )}
+            </div>
+          </>
+        )}
       </div>
       {showAddModal && (
         <div className="modal-overlay">

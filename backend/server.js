@@ -6,6 +6,11 @@ import dotenv from 'dotenv';
 import { registerUser, loginUser } from './controllers/authController.js';
 import AWS from 'aws-sdk';
 import jwt from 'jsonwebtoken';
+import { fetch8KHtmlFromTicker } from './sec-functions/fetch8K.js';
+import { fetch10KHtmlFromTicker } from './sec-functions/fetch10K.js';
+import { fetch10QHtmlFromTicker } from './sec-functions/fetch10Q.js';
+import User from './models/User.js';
+import { getNews } from './sec-functions/getNews.js';
 
 dotenv.config();
 const uri = process.env.MONGODB_URI;
@@ -24,7 +29,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -108,6 +113,16 @@ app.get('/api/profile', authenticateToken, (req, res) => {
   res.json({ message: 'Protected route accessed successfully', user: req.user });
 });
 
+app.get('/api/full-profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-hashedPassword');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
 // Configure AWS SDK
 AWS.config.update({
   region: 'us-east-1',
@@ -124,12 +139,12 @@ async function loadGoogleApiKey() {
     
     if ('SecretString' in data) {
       const secret = JSON.parse(data.SecretString);
-      return secret.GOOGLE_GEMINI_API_KEY;
+      return secret.gemini;
     } else {
       const buff = Buffer.from(data.SecretBinary, 'base64');
       const decodedBinarySecret = buff.toString('ascii');
       const secret = JSON.parse(decodedBinarySecret);
-      return secret.GOOGLE_GEMINI_API_KEY;
+      return secret.gemini;
     }
   } catch (error) {
     console.error('Error loading API key from AWS:', error);
@@ -186,6 +201,43 @@ app.post('/api/generate-content', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error generating content:', error);
     res.status(500).json({ error: 'Error generating content from Gemini' });
+  }
+});
+
+app.post('/api/sec-filings', authenticateToken, async (req, res) => {
+  const { ticker, type } = req.body;
+  if (!ticker || !type) {
+    return res.status(400).json({ error: 'Ticker and type are required' });
+  }
+  try {
+    let result;
+    if (type === '8K') {
+      result = await fetch8KHtmlFromTicker(ticker);
+    } else if (type === '10K') {
+      result = await fetch10KHtmlFromTicker(ticker);
+    } else if (type === '10Q') {
+      result = await fetch10QHtmlFromTicker(ticker);
+    } else {
+      return res.status(400).json({ error: 'Invalid filing type' });
+    }
+    res.json({ data: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch SEC filing' });
+  }
+});
+
+app.post('/api/news', authenticateToken, async (req, res) => {
+  const { ticker } = req.body;
+  if (!ticker) {
+    return res.status(400).json({ error: 'Ticker is required' });
+  }
+  try {
+    const news = await getNews(ticker);
+    res.json({ news });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch news' });
   }
 });
 
