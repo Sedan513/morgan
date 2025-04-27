@@ -1,8 +1,9 @@
-import mongoose from 'mongoose';
-import { fetch8KHtmlFromTicker } from '../sec-functions/fetch8K.js';
-import { fetch10KHtmlFromTicker } from '../sec-functions/fetch10K.js';
-import { fetch10QHtmlFromTicker } from '../sec-functions/fetch10Q.js';
-import { getNews } from '../sec-functions/getNews.js';
+const mongoose = require('mongoose');
+
+const { fetch8KHtmlFromTicker } = require('../sec-functions/fetch8K');   
+const { fetch10KHtmlFromTicker } = require('../sec-functions/fetch10K');
+const { fetch10QHtmlFromTicker } = require('../sec-functions/fetch10Q');
+const { getNews } = require('../sec-functions/getNews');
 
 // Each stock the user owns
 const stockSchema = new mongoose.Schema({
@@ -17,42 +18,19 @@ const stockSchema = new mongoose.Schema({
 
 // User schema with full profile
 const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
-  },
-  hashedPassword: {
-    type: String,
-    required: true
-  },
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  age: {
-    type: Number,
-    required: true
-  },
-  location: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  birthday: {
-    type: Date,
-    required: true
-  },
-  stocks: [stockSchema]
+  username: { type: String, required: true, unique: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  hashedPassword: { type: String, required: true },
+
+  // New profile fields
+  name: { type: String, required: true, trim: true },   // Full Name
+  age: { type: Number, required: true },                // Age
+  location: { type: String, trim: true },               // City / State / Country
+  birthday: { type: Date },                             // Birthday Date
+
+  // Stock portfolio
+  stocks: [stockSchema],
+  
 }, {
   timestamps: true // createdAt, updatedAt fields
 });
@@ -150,19 +128,38 @@ userSchema.methods.generateGeminiPromptData = async function() {
     } catch (err) {
       console.warn(`10-Q fetch failed for ${symbol}:`, err.message);
     }
+    try {
+        news = await getNews(symbol);
+    } catch (err) {
+        console.warn(`News fetch failed for ${symbol}:`, err.message);
+    }
 
-    stockSummary += `\nStock: ${symbol}\n`;
-    stockSummary += `Quantity: ${quantity}\n`;
-    stockSummary += `Average Price: ${averagePrice}\n`;
-    stockSummary += `8-K: ${eightK}\n`;
-    stockSummary += `10-K: ${tenK}\n`;
-    stockSummary += `10-Q: ${tenQ}\n`;
-  }
+      stockSummary += `
+  Symbol: ${symbol}
+  Shares: ${quantity}
+  Average Price: $${averagePrice.toFixed(2)}
+  8-K: ${eightK.substring(0, 1000)}${eightK.length > 1000 ? "..." : ""}
+  10-K: ${tenK.substring(0, 1000)}${tenK.length > 1000 ? "..." : ""}
+  10-Q: ${tenQ.substring(0, 1000)}${tenQ.length > 1000 ? "..." : ""}
+  
+  -------------------
+  `;
+      } 
+  return `
+  Goal: Below, I include a full profile for a user, including their stock portfolio. For each stock, there are the latest 8-K, 10-K, and 10-Q filings, ignore the news section right now. For each stock, I want you to give a concise summary of the most important information in the filings that a user should know. After the 8k, 10k, 10q info is top headlines about the current market, using this, give a sentiment analysis of the news, rank it from 1-10 integers on how positive the news is, and give a brief explanation of why you gave that score. 1 being very negative and 10 being very positive. Prioritize the information of the stocks that the user has the most value in.
+  Name: ${this.name}
+  Age: ${this.age}
+  Location: ${this.location}
+  Birthday: ${this.birthday ? this.birthday.toISOString().split('T')[0] : 'N/A'}
+  
+  Stock Portfolio:
+  ${stockSummary.length > 0 ? stockSummary : 'No stocks owned yet.'}
+    `.trim();
+  };
 
-  return stockSummary;
-};
+const User = mongoose.model('User', userSchema);
 
-export default mongoose.model('User', userSchema);
+module.exports = User;
 
 
 
