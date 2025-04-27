@@ -11,6 +11,7 @@ import { useRef } from 'react';
 import { fetchSecFiling } from '../geminiFunctions/fetchSec.js';
 import { fetchGeminiContent } from '../geminiFunctions/geminiRequest.js';
 import { fetchFullUserProfile } from '../geminiFunctions/fetchFullUserProfile.js';
+import { fetchPrices } from '../geminiFunctions/fetchSec.js';
 
 function Dashboard() {
   const [selectedStock, setSelectedStock] = useState(null);
@@ -137,13 +138,26 @@ function Dashboard() {
         rate = 3; // Default to Neutral if invalid
       }
       console.log(rate);
-
+      // Fetch chart data for the new stock
+      let dat = [];
+      try {
+        dat = await fetchPrices(newStock.ticker);
+        // Format each date to 'YYYY-MM-DD'
+        dat = dat.map(item => ({
+          ...item,
+          date: item.date.split('T')[0] // Removes the time part
+        }));
+      } catch (err) {
+        console.error('Failed to fetch chart data:', err);
+        dat = [];
+      }
+      console.log(dat);
       // 3. Add the new stock with its explanations to the state
       const newStockWithData = {
         ...newStock,
         lastUpdated: new Date(),
         rating: rate,
-        chartData: [],
+        chartData: dat,
         explanation10K,
         explanation10Q,
         explanation8K,

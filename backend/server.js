@@ -12,6 +12,7 @@ import jwt from 'jsonwebtoken';
 import { fetchFilingSection } from './sec-functions/fetch.js';
 import User from './models/User.js';
 import { getNews } from './sec-functions/getNews.js';
+import getPrices from './sec-functions/fetchPrices.js';
 
 dotenv.config();
 const uri = process.env.MONGODB_URI;
@@ -277,6 +278,23 @@ app.post('/api/news', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch news' });
+  }
+});
+
+app.post('/api/prices', authenticateToken, async (req, res) => {
+  const { ticker } = req.body;
+  if (!ticker) {
+    return res.status(400).json({ error: 'Ticker is required' });
+  }
+  try {
+    const prices = await getPrices(ticker);
+    if (!prices) {
+      return res.status(404).json({ error: 'No price data found' });
+    }
+    res.json({ prices });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch prices' });
   }
 });
 

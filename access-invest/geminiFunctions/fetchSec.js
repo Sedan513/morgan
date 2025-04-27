@@ -18,6 +18,25 @@ async function fetchSecFiling(ticker, type) {
   }
 }
 
+async function fetchPrices(ticker) {
+  const token = localStorage.getItem('token');
+  const response = await fetch('http://localhost:5001/api/prices', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ ticker })
+  });
+
+  const data = await response.json();
+  if (response.ok) {
+    return data.prices;
+  } else {
+    throw new Error(data.error || 'Failed to fetch prices');
+  }
+}
+
 // // Usage example:
 // fetchSecFiling('AAPL', '10K')
 //   .then(html => {
