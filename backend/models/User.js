@@ -9,7 +9,11 @@ const { getNews } = require('../sec-functions/getNews');
 const stockSchema = new mongoose.Schema({
   symbol: { type: String, required: true },    // e.g., "AAPL"
   quantity: { type: Number, required: true },   // Number of shares
-  averagePrice: { type: Number, required: true } // Average purchase price
+  averagePrice: { type: Number, required: true }, // Average purchase price
+  tenKSummary: { type: String, default: "" },    // Summary of 10-K filing
+  tenQSummary: { type: String, default: "" },    // Summary of 10-Q filing
+  eightKSummary: { type: String, default: "" },  // Summary of 8-K filing
+  sentimentScore: { type: Number, default: 0 }   // Sentiment score (1-5)
 });
 
 // User schema with full profile
@@ -35,7 +39,15 @@ const userSchema = new mongoose.Schema({
 
 // Add a stock
 userSchema.methods.addStock = function(symbol, quantity, averagePrice) {
-  this.stocks.push({ symbol, quantity, averagePrice });
+  this.stocks.push({ 
+    symbol, 
+    quantity, 
+    averagePrice,
+    tenKSummary: "",
+    tenQSummary: "",
+    eightKSummary: "",
+    sentimentScore: 0
+  });
   return this.save();
 };
 
@@ -52,6 +64,42 @@ userSchema.methods.updateStock = function(symbol, newQuantity, newAveragePrice) 
 // Remove a stock
 userSchema.methods.removeStock = function(symbol) {
   this.stocks = this.stocks.filter(s => s.symbol !== symbol);
+  return this.save();
+};
+
+// Update 10-K summary for a stock
+userSchema.methods.updateTenKSummary = async function(symbol, summary) {
+  const stock = this.stocks.find(s => s.symbol === symbol);
+  if (stock) {
+    stock.tenKSummary = summary;
+  }
+  return this.save();
+};
+
+// Update 10-Q summary for a stock
+userSchema.methods.updateTenQSummary = async function(symbol, summary) {
+  const stock = this.stocks.find(s => s.symbol === symbol);
+  if (stock) {
+    stock.tenQSummary = summary;
+  }
+  return this.save();
+};
+
+// Update 8-K summary for a stock
+userSchema.methods.updateEightKSummary = async function(symbol, summary) {
+  const stock = this.stocks.find(s => s.symbol === symbol);
+  if (stock) {
+    stock.eightKSummary = summary;
+  }
+  return this.save();
+};
+
+// Update sentiment score for a stock
+userSchema.methods.updateSentimentScore = async function(symbol, score) {
+  const stock = this.stocks.find(s => s.symbol === symbol);
+  if (stock) {
+    stock.sentimentScore = score;
+  }
   return this.save();
 };
 

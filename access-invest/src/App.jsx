@@ -71,7 +71,7 @@ function AppContent() {
       ],
       ratingExplanation: 'Newly added stock'
     };
-    setStocks([...stocks, newStock]);
+    setStocks([newStock, ...stocks]);
   };
 
   const handleOpenAddDialog = () => {

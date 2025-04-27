@@ -78,23 +78,12 @@ async function generateGeminiContent(prompt) {
 
   return text; // 🔥 Clean, just the AI text
 }
-/*
-// Final Route: Generate AI content with one simple call
-app.post('/generate-content', async (req, res) => {
-  const { prompt } = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: "Missing prompt in request body" });
-  }
-
-  try {
-    const generatedText = await generateGeminiContent(prompt);
-    res.json({ text: generatedText }); // 🔥 Clean output: { text: "..." }
-  } catch (error) {
-    console.error('Error generating content:', error.response?.data || error.message);
-    res.status(500).send('Error generating content from Gemini');
-  }
-});*/
+// Export the function and its dependencies
+module.exports = {
+  generateGeminiContent,
+  loadGoogleApiKey
+};
 
 // Helper function to load Gemini API keys from AWS Secrets Manager
 async function loadGeminiKeys() {
