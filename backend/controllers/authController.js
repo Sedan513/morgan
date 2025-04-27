@@ -7,7 +7,22 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Register new user
 export async function registerUser(req, res) {
   try {
-    const { username, email, password, name, age, location, birthday } = req.body;
+    console.log('Registration request body:', req.body);
+    const { email, password, name, age, location } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !name || !age || !location) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          email: !email ? 'Email is required' : null,
+          password: !password ? 'Password is required' : null,
+          name: !name ? 'Name is required' : null,
+          age: !age ? 'Age is required' : null,
+          location: !location ? 'Location is required' : null
+        }
+      });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ error: 'Email already registered' });
@@ -15,22 +30,37 @@ export async function registerUser(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      username,
       email,
       hashedPassword,
       name,
       age,
       location,
-      birthday: new Date(birthday),
       stocks: []
     });
 
+    console.log('Attempting to save new user:', { email, name, age, location });
     await newUser.save();
+    console.log('User saved successfully');
     res.status(201).json({ message: 'User registered successfully' });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('Registration error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        error: 'Validation error',
+        details: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Registration failed',
+      details: error.message 
+    });
   }
 }
 
