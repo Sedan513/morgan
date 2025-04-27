@@ -33,8 +33,7 @@ function Dashboard() {
         { date: '2024-01-03', price: 148 },
         { date: '2024-01-04', price: 155 },
         { date: '2024-01-05', price: 153 },
-      ],
-      ratingExplanation: 'Strong earnings report and new product launches'
+      ]
     },
     {
       ticker: 'GOOGL',
@@ -47,8 +46,7 @@ function Dashboard() {
         { date: '2024-01-03', price: 2790 },
         { date: '2024-01-04', price: 2810 },
         { date: '2024-01-05', price: 2830 },
-      ],
-      ratingExplanation: 'Stable performance with moderate growth'
+      ]
     },
     {
       ticker: 'MSFT',
@@ -61,8 +59,7 @@ function Dashboard() {
         { date: '2024-01-03', price: 355 },
         { date: '2024-01-04', price: 358 },
         { date: '2024-01-05', price: 360 },
-      ],
-      ratingExplanation: 'Strong cloud services growth and AI initiatives'
+      ]
     }
   ]);
   const [loadingExplanations, setLoadingExplanations] = useState(false);
@@ -103,6 +100,7 @@ function Dashboard() {
   
   const handleAddStockSubmit = async (e) => {
     e.preventDefault();
+    setLoadingExplanations(true);
     try {
       const token = localStorage.getItem('token');
       // 1. Add the stock to the backend
@@ -133,65 +131,30 @@ function Dashboard() {
       const explanation10Q = await fetchGeminiContent(`Summarize the following 10-Q filing in a short paragraph. ${tenQData}.`);
       const explanation8K = await fetchGeminiContent(`Summarize the following 8-K filing in a short paragraph. ${eightKData}.`);
 
-      // 3. Refetch the full user profile and update stocks
-      const user = await fetchFullUserProfile();
-      setStocks([
-        {
-          ...newStock,
-          lastUpdated: new Date(),
-          rating: 0,
-          chartData: [],
-          explanation10K,
-          explanation10Q,
-          explanation8K,
-        },
-        ...user.stocks
-      ]);
+      // 3. Add the new stock with its explanations to the state
+      const newStockWithData = {
+        ...newStock,
+        lastUpdated: new Date(),
+        rating: 0,
+        chartData: [],
+        explanation10K,
+        explanation10Q,
+        explanation8K,
+      };
 
+      setStocks(prevStocks => [newStockWithData, ...prevStocks]);
       setShowAddModal(false);
       setNewStock({ ticker: '', name: '', shares: '', date: '' });
     } catch (err) {
       alert('Network error');
+    } finally {
+      setLoadingExplanations(false);
     }
   };
 
   const handleStockSelect = (stock) => {
     setSelectedStock(stock);
   };
-
-  // Fetch and attach explanations to all stocks on initial load
-  useEffect(() => {
-    async function fetchProfileAndExplanations() {
-      setLoadingExplanations(true);
-      try {
-        const user = await fetchFullUserProfile();
-        // For each stock, fetch explanations if not present
-        const stocksWithExplanations = await Promise.all(
-          user.stocks.map(async (stock) => {
-            // Only fetch if not present
-            if (stock.explanation10K && stock.explanation10Q && stock.explanation8K) {
-              return stock;
-            }
-            const explanation10K = await fetchGeminiContent(`Below is include the HTML for the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 10-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
-            const explanation10Q = await fetchGeminiContent(`Below is include the HTML for the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 10-Q filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
-            const explanation8K = await fetchGeminiContent(`Below is include the HTML for the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}). Summarize the latest 8-K filing for ${stock.symbol || stock.ticker} (${stock.companyName || stock.name || ''}).`);
-            return {
-              ...stock,
-              explanation10K,
-              explanation10Q,
-              explanation8K,
-            };
-          })
-        );
-        setStocks(stocksWithExplanations);
-      } catch (err) {
-        // Optionally handle error
-      } finally {
-        setLoadingExplanations(false);
-      }
-    }
-    fetchProfileAndExplanations();
-  }, []);
 
   return (
     <div className="app-container">
