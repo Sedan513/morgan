@@ -50,16 +50,7 @@ userSchema.methods.removeStock = function(symbol) {
   return this.save();
 };
 
-userSchema.methods.generateGeminiPromptData = async function() { `
-  Name: ${this.name}
-  Age: ${this.age}
-  Location: ${this.location}
-  Birthday: ${this.birthday ? this.birthday.toISOString().split('T')[0] : 'N/A'}
-  
-  Stock Portfolio:
-  ${stockSummary.length > 0 ? stockSummary : 'No stocks owned yet.'}
-    `.trim();
-  };
+userSchema.methods.generateGeminiPromptData = async function() { 
   let stockSummary = '';
 
   for (const stock of this.stocks) {
@@ -95,10 +86,46 @@ userSchema.methods.generateGeminiPromptData = async function() { `
   
   -------------------
   `;
-      }
-  return
+      } 
+  return `
+  Goal: Below, I include a full profile for a user, including their stock portfolio. For each stock, there are the latest 8-K, 10-K, and 10-Q filings. For each stock, I want you to give a concise summary of the most important information in the filings that a user should know. After that stock info is included top 5 headlines about the current market, using this, give a sentiment analysis of the news, rank it from 1-10 integers on how positive the news is, and give a brief explanation of why you gave that score. 1 being very negative and 10 being very positive.
+  Name: ${this.name}
+  Age: ${this.age}
+  Location: ${this.location}
+  Birthday: ${this.birthday ? this.birthday.toISOString().split('T')[0] : 'N/A'}
   
+  Stock Portfolio:
+  ${stockSummary.length > 0 ? stockSummary : 'No stocks owned yet.'}
+    `.trim();
+  };
 
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
+
+
+
+/*
+
+Name: Sebastian Rincon
+Age: 22
+Location: New York, NY
+Birthday: 2002-03-15
+
+Stock Portfolio:
+Symbol: AAPL
+Shares: 10
+Average Price: $148.50
+8-K: Apple Inc. announced its quarterly earnings for the fiscal year 2024...
+10-K: Apple Inc. 2023 Annual Report filed with the SEC...
+10-Q: Apple Inc. Q1 2024 Quarterly Report shows strong growth in services...
+
+-------------------
+Symbol: TSLA
+Shares: 5
+Average Price: $720.00
+8-K: Tesla announces launch of new Model Z...
+10-K: Tesla 2023 Annual Report highlights expansion in Asia...
+10-Q: Tesla Q2 2024 Quarterly Results...
+
+*/
