@@ -1,25 +1,14 @@
-// src/App.jsx
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import './App.css';
-
-import StockChart from './components/StockChart';
-import Rating from './components/Rating';
-import AddStock from './components/AddStock';
-import AuthPage from './Auth.jsx';
-
-import { UserProvider, useUser } from './contexts/UserContext';
-import {
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField
-} from '@mui/material';
+import { useState } from 'react'
+import './App.css'
+import StockChart from './components/StockChart'
+import Rating from './components/Rating'
+import AddStock from './components/AddStock'
+import { UserProvider, useUser } from './contexts/UserContext'
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material'
 
 function AppContent() {
-  const { user, loading } = useUser();
+  const { user, loading, addStock } = useUser();
+  const [selectedStock, setSelectedStock] = useState(null)
   const [stocks, setStocks] = useState([
     {
       ticker: 'AAPL',
@@ -63,11 +52,9 @@ function AppContent() {
       ],
       ratingExplanation: 'Strong cloud services growth and AI initiatives'
     }
-  ]);
-
-  const [selectedStock, setSelectedStock] = useState(null);
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [newSymbol, setNewSymbol] = useState('');
+  ])
+  const [openAddDialog, setOpenAddDialog] = useState(false)
+  const [newSymbol, setNewSymbol] = useState('')
 
   const handleAddStock = (symbol) => {
     const newStock = {
@@ -87,11 +74,15 @@ function AppContent() {
     setStocks([newStock, ...stocks]);
   };
 
-  const handleOpenAddDialog = () => setOpenAddDialog(true);
+  const handleOpenAddDialog = () => {
+    setOpenAddDialog(true);
+  };
+
   const handleCloseAddDialog = () => {
     setOpenAddDialog(false);
     setNewSymbol('');
   };
+
   const handleSubmitNewStock = () => {
     if (newSymbol.trim()) {
       handleAddStock(newSymbol.trim().toUpperCase());
@@ -99,7 +90,9 @@ function AppContent() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="app-container">
@@ -107,23 +100,26 @@ function AppContent() {
         <h1>AccessInvest</h1>
         {user && <div className="user-info">Welcome, {user.name}</div>}
       </header>
-
       <div className="main-content">
         <div className="stock-list">
           <div className="stock-list-header">
-            <Button
-              variant="contained"
+            <Button 
+              variant="contained" 
+              color="primary" 
               onClick={handleOpenAddDialog}
               fullWidth
-              sx={{ height: '48px', fontSize: '1.1rem', fontWeight: 'bold' }}
+              sx={{ 
+                height: '48px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold'
+              }}
             >
               Add Stock
             </Button>
           </div>
-
-          {stocks.map(stock => (
-            <div
-              key={stock.ticker}
+          {stocks.map((stock) => (
+            <div 
+              key={stock.ticker} 
               className="stock-card"
               onClick={() => setSelectedStock(stock)}
             >
@@ -139,7 +135,6 @@ function AppContent() {
             </div>
           ))}
         </div>
-
         <div className="stock-detail">
           {selectedStock ? (
             <>
@@ -160,8 +155,8 @@ function AppContent() {
         </div>
       </div>
 
-      <Dialog
-        open={openAddDialog}
+      <Dialog 
+        open={openAddDialog} 
         onClose={handleCloseAddDialog}
         maxWidth="sm"
         fullWidth
@@ -169,7 +164,16 @@ function AppContent() {
           sx: {
             minWidth: '400px',
             minHeight: '300px',
-            '& .MuiDialogTitle-root': { fontSize: '1.5rem' },
+            '& .MuiDialogTitle-root': {
+              fontSize: '1.5rem',
+              padding: '24px 16px'
+            },
+            '& .MuiDialogContent-root': {
+              padding: '24px 16px'
+            },
+            '& .MuiDialogActions-root': {
+              padding: '16px'
+            }
           }
         }}
       >
@@ -179,16 +183,38 @@ function AppContent() {
             autoFocus
             margin="dense"
             label="Ticker Symbol"
+            type="text"
             fullWidth
             value={newSymbol}
-            onChange={e => setNewSymbol(e.target.value)}
-            onKeyPress={e => e.key === 'Enter' && handleSubmitNewStock()}
-            sx={{ '& .MuiInputLabel-root': { fontSize: '1.2rem' } }}
+            onChange={(e) => setNewSymbol(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSubmitNewStock();
+              }
+            }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: '1.2rem'
+              },
+              '& .MuiInputLabel-root': {
+                fontSize: '1.2rem'
+              }
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmitNewStock}>
+          <Button 
+            onClick={handleCloseAddDialog}
+            sx={{ fontSize: '1.1rem', padding: '8px 16px' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmitNewStock} 
+            variant="contained" 
+            color="primary"
+            sx={{ fontSize: '1.1rem', padding: '8px 24px' }}
+          >
             Add
           </Button>
         </DialogActions>
@@ -197,29 +223,12 @@ function AppContent() {
   );
 }
 
-function Dashboard() {
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      navigate('/auth');
-    }
-  }, [navigate]);
-
-  return <AppContent />;
-}
-
 function App() {
   return (
     <UserProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/*" element={<Dashboard />} />
-        </Routes>
-      </BrowserRouter>
+      <AppContent />
     </UserProvider>
   );
 }
 
 export default App;
-

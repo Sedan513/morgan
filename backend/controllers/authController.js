@@ -1,11 +1,11 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Register new user
-export async function registerUser(req, res) {
+async function registerUser(req, res) {
   try {
     const { username, email, password, name, age, location, birthday } = req.body;
 
@@ -35,7 +35,7 @@ export async function registerUser(req, res) {
 }
 
 // Login user
-export async function loginUser(req, res) {
+async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -58,3 +58,5 @@ export async function loginUser(req, res) {
     res.status(500).json({ error: 'Login failed' });
   }
 }
+
+module.exports = { registerUser, loginUser };
