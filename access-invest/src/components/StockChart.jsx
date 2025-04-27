@@ -10,29 +10,54 @@ import {
 } from 'recharts';
 
 const StockChart = ({ data, size = 'small' }) => {
-  // Sample data - in a real app, this would come from an API
-  const chartData = data || [
-    { date: '2024-01-01', price: 150 },
-    { date: '2024-01-02', price: 152 },
-    { date: '2024-01-03', price: 148 },
-    { date: '2024-01-04', price: 155 },
-    { date: '2024-01-05', price: 153 },
-  ];
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
+
+  // Calculate min and max for the Y-axis to show a reasonable range
+  const prices = data.map(d => d.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const range = maxPrice - minPrice;
+  const padding = range * 0.1; // 10% padding
 
   return (
     <div style={{ width: '100%', height: size === 'small' ? 100 : 300 }}>
       <ResponsiveContainer>
-        <LineChart data={chartData}>
+        <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis domain={['auto', 'auto']} />
-          <Tooltip />
+          <XAxis 
+            dataKey="time" 
+            tick={{ fontSize: size === 'small' ? 10 : 12 }}
+            interval="preserveStartEnd"
+          />
+          <YAxis 
+            domain={[minPrice - padding, maxPrice + padding]}
+            tick={{ fontSize: size === 'small' ? 10 : 12 }}
+            tickFormatter={(value) => formatPrice(value)}
+            width={size === 'small' ? 60 : 80}
+          />
+          <Tooltip
+            formatter={(value) => formatPrice(value)}
+            labelFormatter={(label) => `Time: ${label}`}
+            contentStyle={{
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+            }}
+          />
           <Line
             type="monotone"
             dataKey="price"
             stroke="#8884d8"
-            strokeWidth={2}
             dot={false}
+            activeDot={{ r: size === 'small' ? 4 : 8 }}
+            strokeWidth={2}
           />
         </LineChart>
       </ResponsiveContainer>
