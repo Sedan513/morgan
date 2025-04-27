@@ -155,7 +155,28 @@ function AppContent() {
         </div>
       </div>
 
-      <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
+      <Dialog 
+        open={openAddDialog} 
+        onClose={handleCloseAddDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            minWidth: '400px',
+            minHeight: '300px',
+            '& .MuiDialogTitle-root': {
+              fontSize: '1.5rem',
+              padding: '24px 16px'
+            },
+            '& .MuiDialogContent-root': {
+              padding: '24px 16px'
+            },
+            '& .MuiDialogActions-root': {
+              padding: '16px'
+            }
+          }
+        }}
+      >
         <DialogTitle>Add New Stock</DialogTitle>
         <DialogContent>
           <TextField
@@ -171,11 +192,29 @@ function AppContent() {
                 handleSubmitNewStock();
               }
             }}
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: '1.2rem'
+              },
+              '& .MuiInputLabel-root': {
+                fontSize: '1.2rem'
+              }
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAddDialog}>Cancel</Button>
-          <Button onClick={handleSubmitNewStock} variant="contained" color="primary">
+          <Button 
+            onClick={handleCloseAddDialog}
+            sx={{ fontSize: '1.1rem', padding: '8px 16px' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmitNewStock} 
+            variant="contained" 
+            color="primary"
+            sx={{ fontSize: '1.1rem', padding: '8px 24px' }}
+          >
             Add
           </Button>
         </DialogActions>
