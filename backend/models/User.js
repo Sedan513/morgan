@@ -3,6 +3,7 @@ import { fetch8KHtmlFromTicker } from '../sec-functions/fetch8K.js';
 import { fetch10KHtmlFromTicker } from '../sec-functions/fetch10K.js';
 import { fetch10QHtmlFromTicker } from '../sec-functions/fetch10Q.js';
 import { getNews } from '../sec-functions/getNews.js';
+import { fetchFilingSection } from '../sec-functions/fetch.js';
 
 // Each stock the user owns
 const stockSchema = new mongoose.Schema({
@@ -74,7 +75,7 @@ userSchema.methods.removeStock = function(symbol) {
 };
 
 userSchema.methods.generateGeminiPromptData = async function() { 
-  let stockSummary = '';
+  let stockSummary = 'Below is a summary of the stocks in your portfolio. Please provide a detailed analysis of each stock, including recent news and any relevant filings that would help users of this applications make decisions on what to do with the. Analysze the documents and make suggestiosn out of them. Do not just summarize the document, analyze them in a way that makes it simple to understand and sentimentally analyze how this would effect the stock price';
 
   for (const stock of this.stocks) {
     const { symbol, quantity, averagePrice } = stock;
@@ -82,19 +83,19 @@ userSchema.methods.generateGeminiPromptData = async function() {
     let eightK = "N/A", tenK = "N/A", tenQ = "N/A";
 
     try {
-      eightK = await fetch8KHtmlFromTicker(symbol);
+      eightK = await fetchFilingSection("8-K", symbol);
     } catch (err) {
       console.warn(`8-K fetch failed for ${symbol}:`, err.message);
     }
 
     try {
-      tenK = await fetch10KHtmlFromTicker(symbol);
+      tenk = await fetchFilingSection("10-K", symbol);
     } catch (err) {
       console.warn(`10-K fetch failed for ${symbol}:`, err.message);
     }
 
     try {
-      tenQ = await fetch10QHtmlFromTicker(symbol);
+      tenQ = await fetchFilingSection("10-Q", symbol);
     } catch (err) {
       console.warn(`10-Q fetch failed for ${symbol}:`, err.message);
     }
@@ -105,6 +106,7 @@ userSchema.methods.generateGeminiPromptData = async function() {
     stockSummary += `8-K: ${eightK}\n`;
     stockSummary += `10-K: ${tenK}\n`;
     stockSummary += `10-Q: ${tenQ}\n`;
+    stockSummary += `News: ${await getNews(symbol).splice(0,1000)}\n`;
   }
 
   return stockSummary;

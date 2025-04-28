@@ -1,5 +1,5 @@
 // src/pages/Auth.jsx
-import './auth.css';
+import './Auth.css';
 import React, { useState } from 'react';
 import logo from './assets/newlogo2.png'; // Add this at the top
 

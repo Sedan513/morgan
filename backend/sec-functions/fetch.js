@@ -15,13 +15,13 @@ async function fetchFilingSection(ticker, formType) {
     const filingResponse = await fetch(data[0].finalLink, { headers });
     const html = await (await filingResponse.text());
     const text = convert(html, {
-      wordwrap: 400,          // wrap at 130 chars
+      wordwrap: 1000,          // wrap at 130 chars
       selectors: [
         { selector: 'a', options: { hideLinkHrefIfSameAsText: true } }
       ]
     });
    // console.log(text);
-    return text.slice(100, 3000);
+    return text.slice(0, 200000);
 }
 
   export { fetchFilingSection };
